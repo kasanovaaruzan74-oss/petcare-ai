@@ -1,0 +1,2 @@
+"""PetCare AI desktop application."""
+
