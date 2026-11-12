@@ -12,7 +12,9 @@ RESET_RESEND_SECONDS = 60
 
 def normalized_email(value):
     value = value.strip().casefold()
-    if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value):
+    forbidden = ',;:<>()"\\[]'
+    if (len(value) > 254 or any(c in forbidden or ord(c) < 32 or ord(c) == 127 for c in value)
+            or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value)):
         raise ValueError("Пошта мекенжайын тексеріңіз.")
     return value
 
@@ -79,7 +81,13 @@ class Accounts:
 
     def logout(self, session):
         with self.conn:
-            self.conn.execute("DELETE FROM sessions WHERE token_hash=?", (token_hash(session),))
+            key = token_hash(session)
+            self.conn.execute(
+                "INSERT INTO events(owner_id,action,detail) SELECT owner_id,?,? FROM sessions "
+                "WHERE token_hash=? AND expires_at>?",
+                ("Сеанс аяқталды", "Аккаунттан шығу", key, int(time.time())),
+            )
+            self.conn.execute("DELETE FROM sessions WHERE token_hash=?", (key,))
 
     def profile(self, session):
         return dict(self.conn.execute(
@@ -114,6 +122,7 @@ class Accounts:
                               (*password_fields(new), oid))
             self.conn.execute("DELETE FROM password_resets WHERE owner_id=?", (oid,))
             self.conn.execute("DELETE FROM sessions WHERE owner_id=? AND token_hash<>?", (oid, token_hash(session)))
+            self._event(oid, "Құпиясөз өзгертілді", "Профильден жаңартылды.")
 
     def request_reset(self, email, send_callback):
         email = normalized_email(email)
@@ -159,6 +168,7 @@ class Accounts:
                     self.conn.execute("UPDATE owners SET salt=?,password_hash=? WHERE id=?", (*new_fields, oid))
                     self.conn.execute("DELETE FROM password_resets WHERE owner_id=?", (oid,))
                     self.conn.execute("DELETE FROM sessions WHERE owner_id=?", (oid,))
+                    self._event(oid, "Құпиясөз қалпына келтірілді", "Поштадағы код расталды.")
                     return
                 self.conn.execute("UPDATE password_resets SET attempts=attempts+1 WHERE owner_id=?", (oid,))
         raise ValueError("Код қате немесе оның мерзімі аяқталған.")

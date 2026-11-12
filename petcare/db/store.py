@@ -1,6 +1,7 @@
 """Local repository. Each write and its audit entry commit in the same transaction."""
 import csv
 import io
+import json
 import math
 import sqlite3
 from datetime import date, datetime, timedelta
@@ -83,15 +84,26 @@ class Store(Accounts):
         return dict(self._pet(self.owner(session), pet_id))
 
     def list_pets(self, session, query="", species="", sort="name"):
-        columns = {"name": "fold(name)", "birth_date": "birth_date", "weight_kg": "weight_kg", "id": "id"}
+        return self.search_pets(session, query, {"species": species}, sort)
+
+    def search_pets(self, session, query="", filters=None, sort="name"):
+        columns = {"name": "fold(name)", "species": "fold(species)", "breed": "fold(breed)",
+                   "birth_date": "birth_date", "weight_kg": "weight_kg", "id": "id"}
         if sort not in columns:
             raise ValueError("Сұрыптау өрісі дұрыс емес.")
+        filters = filters or {}
+        if set(filters) - {"species", "breed"}:
+            raise ValueError("Іздеу сүзгісі дұрыс емес.")
+        species = str(filters.get("species") or "").strip()
+        breed = str(filters.get("breed") or "").strip()
+        query = query.strip()
         order = columns[sort]
         records = self.conn.execute(
             "SELECT * FROM pets WHERE owner_id=? AND (?='' OR fold(species)=fold(?)) "
+            "AND (?='' OR fold(breed)=fold(?)) "
             "AND (instr(fold(name),fold(?))>0 OR instr(fold(breed),fold(?))>0 OR instr(fold(species),fold(?))>0) "
-            f"ORDER BY {order}, id",
-            (self.owner(session), species, species, query.strip(), query.strip(), query.strip()),
+            f"ORDER BY {order}, fold(name), id",
+            (self.owner(session), species, species, breed, breed, query, query, query),
         )
         return [dict(r) for r in records]
 
@@ -175,6 +187,24 @@ class Store(Accounts):
         )
         return [dict(r) for r in records]
 
+    def reminders(self, session, now, until=None, task_type=None):
+        """Upcoming unfinished care in local time, including both interval boundaries."""
+        oid = self.owner(session)
+        if not isinstance(now, datetime) or now.tzinfo is not None:
+            raise ValueError("Еске салғышқа жергілікті уақытты беріңіз.")
+        if until is not None and (not isinstance(until, datetime) or until.tzinfo is not None or until < now):
+            raise ValueError("Еске салғыш кезеңінің соңғы уақытын тексеріңіз.")
+        types = ("vaccine", "vaccination") if task_type in {"vaccine", "vaccination"} else (task_type, task_type)
+        stop = until.isoformat() if until else None
+        records = self.conn.execute(
+            "SELECT t.*,p.name AS pet_name FROM care_tasks t JOIN pets p ON t.pet_id=p.id "
+            "WHERE p.owner_id=? AND t.status='planned' AND julianday(t.scheduled_at)>=julianday(?) "
+            "AND (? IS NULL OR julianday(t.scheduled_at)<=julianday(?)) "
+            "AND (? IS NULL OR t.task_type IN (?,?)) ORDER BY t.scheduled_at,t.id",
+            (oid, now.isoformat(), stop, stop, task_type, *types),
+        )
+        return [dict(row) for row in records]
+
     def stats(self, session, day):
         oid = self.owner(session)
         end = date.fromisoformat(str(day))
@@ -195,28 +225,37 @@ class Store(Accounts):
                 "done_count": week[-1]["done"], "weekly": week}
 
     def history(self, session, query=""):
+        query = query.strip()
         rows = self.conn.execute(
             "SELECT id,created_at,action,detail FROM events WHERE owner_id=? "
-            "AND (instr(fold(action),fold(?))>0 OR instr(fold(detail),fold(?))>0) ORDER BY id DESC",
-            (self.owner(session), query.strip(), query.strip()),
+            "AND instr(fold(created_at || ' ' || strftime('%d.%m.%Y %H:%M',created_at,'localtime') "
+            "|| ' ' || action || ' ' || detail),fold(?))>0 ORDER BY id DESC",
+            (self.owner(session), query),
         )
         return [dict(row) for row in rows]
 
-    def export_report(self, session, start_date=None, end_date=None):
+    def export_report(self, session, start_date=None, end_date=None, file_format="csv"):
+        if file_format not in {"csv", "json"}:
+            raise ValueError("Есеп пішімі CSV немесе JSON болуы керек.")
         start = date.fromisoformat(str(start_date)) if start_date is not None else date.min
         end = date.fromisoformat(str(end_date)) if end_date is not None else date.max
         if end < start:
             raise ValueError("Кезеңнің соңғы күні бастапқы күннен ерте.")
-        output = io.StringIO(newline="")
-        writer = csv.writer(output)
-        writer.writerow(["Жануар", "Күтім түрі", "Тапсырма", "Күні мен уақыты", "Мәртебесі"])
+        headers = ["Жануар", "Күтім түрі", "Тапсырма", "Күні мен уақыты", "Мәртебесі"]
+        rows = []
         for task in self.tasks(session):
             scheduled_day = date.fromisoformat(task["scheduled_at"][:10])
             if not start <= scheduled_day <= end:
                 continue
             status = "Орындалды" if task["status"] == "done" else "Жоспарда"
-            writer.writerow([csv_text(task["pet_name"]), csv_text(task["task_type"]),
-                             csv_text(task["title"]), task["scheduled_at"], status])
+            rows.append([task["pet_name"], task["task_type"], task["title"], task["scheduled_at"], status])
+        if file_format == "json":
+            data = [dict(zip(headers, row)) for row in rows]
+            return (json.dumps(data, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+        output = io.StringIO(newline="")
+        writer = csv.writer(output)
+        writer.writerow(headers)
+        writer.writerows([csv_text(value) for value in row] for row in rows)
         return output.getvalue().encode("utf-8-sig")
 
     def seed_demo(self, session):
