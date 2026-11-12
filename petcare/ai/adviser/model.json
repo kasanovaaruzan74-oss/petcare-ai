@@ -1,0 +1,35 @@
+{
+  "model_id": "balnur-care-tree",
+  "model_version": "1.0",
+  "features": [
+    "task_count",
+    "done_count",
+    "overdue_count",
+    "upcoming_count",
+    "minutes_until_next",
+    "empty_log"
+  ],
+  "nodes": [
+    {
+      "feature": 2,
+      "threshold": 0.5,
+      "left": 1,
+      "right": 4
+    },
+    {
+      "feature": 3,
+      "threshold": 0.5,
+      "left": 2,
+      "right": 3
+    },
+    {
+      "action": "populate"
+    },
+    {
+      "action": "review"
+    },
+    {
+      "action": "reschedule"
+    }
+  ]
+}

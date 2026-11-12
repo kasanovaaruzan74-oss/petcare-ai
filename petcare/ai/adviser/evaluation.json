@@ -1,0 +1,316 @@
+{
+  "scikit_learn": "1.6.1",
+  "seed": 42,
+  "training_records": 54,
+  "training_pets": 18,
+  "labels": [
+    "populate",
+    "review",
+    "reschedule"
+  ],
+  "suites": {
+    "upcoming_cats": {
+      "correct": 6,
+      "count": 6,
+      "cases": [
+        {
+          "pet_id": "cat-21",
+          "expected": "review",
+          "predicted": "review",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 1
+          },
+          "recommendation": "Алдағы тапсырманы қараңыз."
+        },
+        {
+          "pet_id": "cat-22",
+          "expected": "review",
+          "predicted": "review",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 2
+          },
+          "recommendation": "Алдағы тапсырманы қараңыз."
+        },
+        {
+          "pet_id": "cat-23",
+          "expected": "review",
+          "predicted": "review",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 3
+          },
+          "recommendation": "Алдағы тапсырманы қараңыз."
+        },
+        {
+          "pet_id": "cat-24",
+          "expected": "review",
+          "predicted": "review",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 1
+          },
+          "recommendation": "Алдағы тапсырманы қараңыз."
+        },
+        {
+          "pet_id": "cat-25",
+          "expected": "review",
+          "predicted": "review",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 4
+          },
+          "recommendation": "Алдағы тапсырманы қараңыз."
+        },
+        {
+          "pet_id": "cat-26",
+          "expected": "review",
+          "predicted": "review",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 3
+          },
+          "recommendation": "Алдағы тапсырманы қараңыз."
+        }
+      ]
+    },
+    "overdue_dogs": {
+      "correct": 6,
+      "count": 6,
+      "cases": [
+        {
+          "pet_id": "dog-81",
+          "expected": "reschedule",
+          "predicted": "reschedule",
+          "path_values": {
+            "overdue_count": 1
+          },
+          "recommendation": "Өтіп кеткен тапсырманы қайта жоспарлаңыз."
+        },
+        {
+          "pet_id": "dog-82",
+          "expected": "reschedule",
+          "predicted": "reschedule",
+          "path_values": {
+            "overdue_count": 2
+          },
+          "recommendation": "Өтіп кеткен тапсырманы қайта жоспарлаңыз."
+        },
+        {
+          "pet_id": "dog-83",
+          "expected": "reschedule",
+          "predicted": "reschedule",
+          "path_values": {
+            "overdue_count": 1
+          },
+          "recommendation": "Өтіп кеткен тапсырманы қайта жоспарлаңыз."
+        },
+        {
+          "pet_id": "dog-84",
+          "expected": "reschedule",
+          "predicted": "reschedule",
+          "path_values": {
+            "overdue_count": 4
+          },
+          "recommendation": "Өтіп кеткен тапсырманы қайта жоспарлаңыз."
+        },
+        {
+          "pet_id": "dog-85",
+          "expected": "reschedule",
+          "predicted": "reschedule",
+          "path_values": {
+            "overdue_count": 7
+          },
+          "recommendation": "Өтіп кеткен тапсырманы қайта жоспарлаңыз."
+        },
+        {
+          "pet_id": "dog-86",
+          "expected": "reschedule",
+          "predicted": "reschedule",
+          "path_values": {
+            "overdue_count": 2
+          },
+          "recommendation": "Өтіп кеткен тапсырманы қайта жоспарлаңыз."
+        }
+      ]
+    },
+    "empty_rabbits": {
+      "correct": 6,
+      "count": 6,
+      "cases": [
+        {
+          "pet_id": "rabbit-41",
+          "expected": "populate",
+          "predicted": "populate",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 0
+          },
+          "recommendation": "Күтім жоспарын толықтырыңыз."
+        },
+        {
+          "pet_id": "rabbit-42",
+          "expected": "populate",
+          "predicted": "populate",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 0
+          },
+          "recommendation": "Күтім жоспарын толықтырыңыз."
+        },
+        {
+          "pet_id": "rabbit-43",
+          "expected": "populate",
+          "predicted": "populate",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 0
+          },
+          "recommendation": "Күтім жоспарын толықтырыңыз."
+        },
+        {
+          "pet_id": "rabbit-44",
+          "expected": "populate",
+          "predicted": "populate",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 0
+          },
+          "recommendation": "Күтім жоспарын толықтырыңыз."
+        },
+        {
+          "pet_id": "rabbit-45",
+          "expected": "populate",
+          "predicted": "populate",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 0
+          },
+          "recommendation": "Күтім жоспарын толықтырыңыз."
+        },
+        {
+          "pet_id": "rabbit-46",
+          "expected": "populate",
+          "predicted": "populate",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 0
+          },
+          "recommendation": "Күтім жоспарын толықтырыңыз."
+        }
+      ]
+    },
+    "species_swap": {
+      "correct": 9,
+      "count": 9,
+      "cases": [
+        {
+          "pet_id": "swap-0",
+          "expected": "reschedule",
+          "predicted": "reschedule",
+          "path_values": {
+            "overdue_count": 1
+          },
+          "recommendation": "Өтіп кеткен тапсырманы қайта жоспарлаңыз."
+        },
+        {
+          "pet_id": "swap-1",
+          "expected": "populate",
+          "predicted": "populate",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 0
+          },
+          "recommendation": "Күтім жоспарын толықтырыңыз."
+        },
+        {
+          "pet_id": "swap-2",
+          "expected": "review",
+          "predicted": "review",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 1
+          },
+          "recommendation": "Алдағы тапсырманы қараңыз."
+        },
+        {
+          "pet_id": "swap-3",
+          "expected": "populate",
+          "predicted": "populate",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 0
+          },
+          "recommendation": "Күтім жоспарын толықтырыңыз."
+        },
+        {
+          "pet_id": "swap-4",
+          "expected": "review",
+          "predicted": "review",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 1
+          },
+          "recommendation": "Алдағы тапсырманы қараңыз."
+        },
+        {
+          "pet_id": "swap-5",
+          "expected": "reschedule",
+          "predicted": "reschedule",
+          "path_values": {
+            "overdue_count": 1
+          },
+          "recommendation": "Өтіп кеткен тапсырманы қайта жоспарлаңыз."
+        },
+        {
+          "pet_id": "swap-6",
+          "expected": "review",
+          "predicted": "review",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 1
+          },
+          "recommendation": "Алдағы тапсырманы қараңыз."
+        },
+        {
+          "pet_id": "swap-7",
+          "expected": "reschedule",
+          "predicted": "reschedule",
+          "path_values": {
+            "overdue_count": 1
+          },
+          "recommendation": "Өтіп кеткен тапсырманы қайта жоспарлаңыз."
+        },
+        {
+          "pet_id": "swap-8",
+          "expected": "populate",
+          "predicted": "populate",
+          "path_values": {
+            "overdue_count": 0,
+            "upcoming_count": 0
+          },
+          "recommendation": "Күтім жоспарын толықтырыңыз."
+        }
+      ]
+    }
+  },
+  "macro_f1": 1.0,
+  "confusion_matrix": [
+    [
+      9,
+      0,
+      0
+    ],
+    [
+      0,
+      9,
+      0
+    ],
+    [
+      0,
+      0,
+      9
+    ]
+  ]
+}
