@@ -1,1 +1,1 @@
-"""PetCare application services."""
+"""Application services shared by PetCare's desktop views."""
