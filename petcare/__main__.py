@@ -29,11 +29,11 @@ def main():
         clock = datetime.now
         if args.demo:
             password = secrets.token_urlsafe(24)
-            store.register("Балнұр Кенже", "demo@example.invalid", password)
+            store.register("Аружан Касанова", "demo@example.invalid", password)
             session = store.login("demo@example.invalid", password)
             store.seed_demo(session)
             clock = lambda: datetime(2026, 10, 29, 18, 0)
-        window = MainWindow(store, session=session, clock=clock)
+        window = MainWindow(store, session=session, clock=clock, demo=args.demo)
         window.show()
         return app.exec()
     finally:
