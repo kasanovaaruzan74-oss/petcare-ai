@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
+from petcare.ai.intent import classify_intent as predict_intent
+from petcare.services.scoring import rank_plans as score_plans
 from . import dialogs
 from .widgets import ASSETS, button, field, formatted_time, icon, label, panel, rule
 
@@ -18,19 +20,16 @@ MONTHS = ("қаңтар", "ақпан", "наурыз", "сәуір", "мамы�
 DAYS = ("дүйсенбі", "сейсенбі", "сәрсенбі", "бейсенбі", "жұма", "сенбі", "жексенбі")
 
 
-def default_rank(plans, weights):
-    ranked = [dict(p, score=100 * (p["time_fit"] * weights[0] + p["frequency_fit"] * weights[1])) for p in plans]
-    return sorted(ranked, key=lambda p: -p["score"])
-
-
 class MainWindow(QMainWindow):
-    def __init__(self, store, session=None, clock=datetime.now, rank_plans=None, classify_intent=None):
+    def __init__(self, store, session=None, clock=datetime.now, rank_plans=None,
+                 classify_intent=None, demo=False):
         super().__init__()
         self.store = store
         self.session = session
         self.clock = clock
-        self.rank_plans = rank_plans or default_rank
-        self.classify_intent = classify_intent
+        self.demo = demo
+        self.rank_plans = rank_plans or score_plans
+        self.classify_intent = classify_intent or predict_intent
         self.setWindowTitle("PetCare AI")
         self.setWindowIcon(QIcon(str(ASSETS / "brand.svg")))
         self.resize(1280, 820)
@@ -80,9 +79,14 @@ class MainWindow(QMainWindow):
         form.addWidget(label("Құпиясөз", "hint"))
         form.addWidget(password)
         status = label(notice, "hint", True)
+        status.setObjectName("loginMessage")
         form.addWidget(status)
 
         def enter():
+            if not mail.text().strip() or not password.text():
+                status.setText("Электрондық пошта мен құпиясөзді енгізіңіз.")
+                (mail if not mail.text().strip() else password).setFocus()
+                return
             try:
                 self.session = self.store.login(mail.text(), password.text())
             except ValueError as exc:
@@ -100,6 +104,7 @@ class MainWindow(QMainWindow):
     def sign_out(self):
         if self.session:
             self.store.logout(self.session)
+        self.demo = False
         self.login_page()
 
     def closeEvent(self, event):
@@ -112,6 +117,7 @@ class MainWindow(QMainWindow):
         menu = QMenu(self)
         for title, callback in [("Жеке профиль", dialogs.profile), ("Құпиясөзді өзгерту", dialogs.password_change),
                                 ("Күтім жоспарларын салыстыру", dialogs.compare), ("Апталық күтім", dialogs.weekly),
+                                ("Күтім еске салғыштары", dialogs.reminders),
                                 ("Әрекеттер тарихы", dialogs.history),
                                 ("Есепті сақтау", dialogs.export), ("Есепті поштаға жіберу", dialogs.email_report)]:
             action = menu.addAction(title)
@@ -253,9 +259,7 @@ class MainWindow(QMainWindow):
         cal.setPixmap(icon("calendar", "#74DFCB").pixmap(20, 20))
         vacc_header.addWidget(cal)
         vacc_lay.addLayout(vacc_header)
-        upcoming = sorted((t for t in tasks if t["task_type"] in {"vaccine", "vaccination"}
-                           and t["status"] != "done" and datetime.fromisoformat(t["scheduled_at"]) >= now),
-                          key=lambda t:t["scheduled_at"])
+        upcoming = self.store.reminders(self.session, now, task_type="vaccination")
         for task in upcoming:
             vacc_lay.addWidget(rule())
             due = datetime.fromisoformat(task["scheduled_at"])
@@ -273,9 +277,9 @@ class MainWindow(QMainWindow):
         self.store.complete_task(self.session, task_id)
         self.home()
 
-    def registry(self):
+    def registry(self, notice=""):
         from .pets import registry
-        registry(self)
+        registry(self, notice)
 
     def pet_form(self, record=None):
         from .pets import pet_form

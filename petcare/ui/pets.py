@@ -12,16 +12,21 @@ SPECIES = ("Мысық", "Ит", "Қоян", "Басқа")
 SEX = ("Ұрғашы", "Еркек", "Белгісіз")
 
 
-def registry(window):
+def registry(window, notice=""):
     page = window.workspace("pets", "Жануарларым", "Тіркелген үй жануарлары",
                             window.action("+  Жануар қосу", window.pet_form, "primary"))
     box, body = panel()
+    if notice:
+        saved = label(notice, "accent", True)
+        saved.setObjectName("saveNotice")
+        body.addWidget(saved)
     controls = QHBoxLayout()
     search = field(placeholder="Аты, түрі немесе тұқымы бойынша іздеу")
     search.setObjectName("petSearch")
     controls.addWidget(search, 1)
     species = combo([("", "Барлық түрі")] + [(s,s) for s in SPECIES])
-    order = combo([("id","Тіркелу реті"), ("name","Аты бойынша"), ("birth_date","Туған күні"),
+    order = combo([("id","Тіркелу реті"), ("name","Аты бойынша"), ("species","Түрі бойынша"),
+                   ("breed","Тұқымы бойынша"), ("birth_date","Туған күні"),
                    ("weight_kg","Салмағы")])
     controls.addWidget(species)
     controls.addWidget(order)
@@ -128,9 +133,27 @@ def pet_form(window, record=None):
     cols.addWidget(picture,337)
     page.addLayout(cols)
     message = label("","error",True)
+    message.setObjectName("petFormError")
     page.addWidget(message)
 
+    def flag_name(invalid):
+        name.setProperty("invalid", invalid)
+        name.style().unpolish(name)
+        name.style().polish(name)
+
+    def clear_name_error(text):
+        if text.strip() and name.property("invalid"):
+            flag_name(False)
+            message.clear()
+
+    name.textChanged.connect(clear_name_error)
+
     def save():
+        if not name.text().strip():
+            flag_name(True)
+            name.setFocus()
+            message.setText("Жануардың атын енгізіңіз.")
+            return
         try:
             window.store.save_pet(window.session, {
                 "name":name.text(), "species":species.currentText(), "breed":breed.text(),
@@ -140,7 +163,7 @@ def pet_form(window, record=None):
         except ValueError as exc:
             message.setText(str(exc))
             return
-        window.registry()
+        window.registry("Өзгерістер сақталды." if editing else f"{name.text().strip()} тізімге қосылды.")
 
     def remove():
         reply = QMessageBox.question(window,"Жоюды растау",
@@ -149,7 +172,7 @@ def pet_form(window, record=None):
                                      QMessageBox.StandardButton.Cancel)
         if reply == QMessageBox.StandardButton.Yes:
             window.store.delete_pet(window.session,pet["id"])
-            window.registry()
+            window.registry(f"{pet['name']} профилі жойылды.")
 
     actions = QHBoxLayout()
     if editing:

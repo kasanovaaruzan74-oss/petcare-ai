@@ -1,14 +1,12 @@
-import csv
-import io
-from datetime import datetime
-from pathlib import Path
+from datetime import datetime, timedelta
 
-from PySide6.QtCore import QDateTime, Qt
+from PySide6.QtCore import QDateTime
 from PySide6.QtWidgets import (
-    QDateTimeEdit, QDialog, QFileDialog, QHBoxLayout, QProgressBar, QSpinBox,
-    QVBoxLayout, QWidget,
+    QDateTimeEdit, QDialog, QFileDialog, QPlainTextEdit, QProgressBar, QSpinBox, QVBoxLayout,
 )
 
+from petcare.services.reports import save_report
+from petcare.services.scoring import normalize_plan
 from .widgets import Form, TASK_TYPES, button, combo, field, formatted_day, label, table, table_row
 
 
@@ -95,51 +93,70 @@ def care(window):
 
 def compare(window):
     form = Form(window, "Күтім жоспарларын салыстыру")
+    form.resize(660, 640)
     available = QSpinBox()
-    available.setRange(1, 1440)
+    available.setObjectName("availableMinutes")
+    available.setRange(0, 1440)
     available.setSuffix(" мин")
     available.setValue(30)
     desired = QSpinBox()
+    desired.setObjectName("targetCareCount")
     desired.setRange(1, 50)
     desired.setValue(2)
     form.fields.addRow("Күніне бос уақыт", available)
     form.fields.addRow("Күніне қажетті күтім саны", desired)
-    input_rows = []
-    for name, time, count in [("А жоспары", 30, 1), ("Б жоспары", 60, 2)]:
+    grid = table(["Жоспар", "Қажетті уақыт", "Күніне күтім"])
+    grid.setObjectName("planInputs")
+    grid.setMinimumHeight(143)
+    form.layout_.addWidget(grid)
+    result = QPlainTextEdit()
+    result.setObjectName("planScores")
+    result.setReadOnly(True)
+    form.layout_.addWidget(label("Уақыт сәйкестігі = бос уақыт / қажетті уақыт. Жиілік = жоспарланған / қажетті күтім. Екі көрсеткіштің де ең жоғары мәні — 1.", "hint", True))
+
+    def add_plan():
+        index = grid.rowCount()
+        name = ("А жоспары", "Б жоспары")[index] if index < 2 else f"№{index + 1} жоспар"
+        row = table_row(grid, [name, "", ""])
         time_box, count_box = QSpinBox(), QSpinBox()
         time_box.setRange(1, 1440)
         time_box.setSuffix(" мин")
-        time_box.setValue(time)
-        count_box.setRange(1, 50)
-        count_box.setValue(count)
+        time_box.setValue(60 if index == 1 else 30)
+        count_box.setRange(0, 50)
+        count_box.setValue(2 if index == 1 else 1)
         count_box.setSuffix(" рет")
-        group = QWidget()
-        lay = QHBoxLayout(group)
-        lay.setContentsMargins(0, 0, 0, 0)
-        lay.addWidget(time_box)
-        lay.addWidget(count_box)
-        form.fields.addRow(name, group)
-        input_rows.append((name, time_box, count_box))
-    result = label("", wrap=True)
-    result.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        grid.setCellWidget(row, 1, time_box)
+        grid.setCellWidget(row, 2, count_box)
+        time_box.valueChanged.connect(update)
+        count_box.valueChanged.connect(update)
+        if grid.rowCount() >= 2:
+            update()
 
     def update():
-        plans = [{"name": name, "time_fit": min(1, available.value() / t.value()),
-                  "frequency_fit": min(1, c.value() / desired.value())}
-                 for name, t, c in input_rows]
+        plans = [normalize_plan({"name": grid.item(i, 0).text(), "available_minutes": available.value(),
+                                 "required_minutes": grid.cellWidget(i, 1).value(),
+                                 "planned_count": grid.cellWidget(i, 2).value(), "target_count": desired.value()})
+                 for i in range(grid.rowCount())]
         ranked = window.rank_plans(plans, (0.6, 0.4))
-        lines = [f"{p['name']}: уақыт {p['time_fit']:.0%} × 60 + жиілік {p['frequency_fit']:.0%} × 40 = {p['score']:.1f} балл"
-                 for p in ranked]
-        leaders = [p["name"] for p in ranked if abs(p["score"] - ranked[0]["score"]) < 1e-8]
-        lines.append("Тең нәтиже." if len(leaders) > 1 else f"Ұсынылған нұсқа — {leaders[0]}.")
-        result.setText("\n".join(lines))
+        leaders = [p["name"] for p in ranked if p["score"] == ranked[0]["score"]]
+        prefix = "Тең нәтиже" if len(leaders) > 1 else "Ұсынылған жоспар"
+        lines = [prefix + " — " + ", ".join(leaders), ""]
+        for p in ranked:
+            time_points = p.get("time_points", p["time_fit"] * 60)
+            frequency_points = p.get("frequency_points", p["frequency_fit"] * 40)
+            tied = p.get("tied")
+            if tied is None:
+                tied = sum(other["score"] == p["score"] for other in ranked) > 1
+            lines.append(f"{p['name']} · {p['score']:.8g}/100" + (" · Тең нәтиже" if tied else ""))
+            lines.append(f"Уақыт {p['time_fit']:.2f} × 60 = {time_points:.2f}, "
+                         f"жиілік {p['frequency_fit']:.2f} × 40 = {frequency_points:.2f}")
+        result.setPlainText("\n".join(lines))
 
-    for _, t, c in input_rows:
-        t.valueChanged.connect(update)
-        c.valueChanged.connect(update)
+    add_plan()
+    add_plan()
     available.valueChanged.connect(update)
     desired.valueChanged.connect(update)
-    update()
+    form.layout_.addWidget(button("+  Жоспар қосу", add_plan))
     form.layout_.addWidget(result)
     form.layout_.addWidget(button("Жабу", form.accept))
     form.exec()
@@ -154,41 +171,84 @@ def history(window):
     layout.addWidget(search)
     grid = table(["Уақыт", "Әрекет", "Мәлімет"])
     layout.addWidget(grid)
-    records = window.store.history(window.session)
 
     def filter_rows():
         grid.setRowCount(0)
-        for r in records:
+        for r in window.store.history(window.session, search.text()):
             time = datetime.fromisoformat(r["created_at"].replace("Z", "+00:00")).astimezone()
             values = [time.strftime("%d.%m.%Y %H:%M"), r["action"], r["detail"]]
-            if search.text().casefold() in " ".join(map(str, values)).casefold():
-                table_row(grid, values)
+            table_row(grid, values)
 
-    search.textChanged.connect(filter_rows)
+    search.textChanged.connect(lambda: window.run(filter_rows))
     filter_rows()
     dialog.exec()
 
 
+def reminders(window):
+    form = Form(window, "Күтім еске салғыштары")
+    form.resize(700, 410)
+    period = combo([(1, "Келесі 24 сағат"), (7, "Келесі 7 күн"), (None, "Барлық алдағы күтім")])
+    form.fields.addRow("Уақыт аралығы", period)
+    grid = table(["Күні мен уақыты", "Жануар", "Тапсырма"])
+    form.layout_.addWidget(grid)
+    count = label("", "hint")
+    form.layout_.addWidget(count)
+
+    def refresh():
+        now = window.clock()
+        days = period.currentData()
+        until = now + timedelta(days=days) if days else None
+        rows = window.store.reminders(window.session, now, until)
+        grid.setRowCount(0)
+        for row in rows:
+            when = datetime.fromisoformat(row["scheduled_at"]).strftime("%d.%m.%Y %H:%M")
+            table_row(grid, [when, row["pet_name"], row["title"]])
+        count.setText(f"Алдағы тапсырмалар саны: {len(rows)}" if rows else "Бұл кезеңде жоспарланған күтім жоқ.")
+
+    period.currentIndexChanged.connect(lambda: window.run(refresh))
+    refresh()
+    form.layout_.addWidget(button("Жабу", form.accept))
+    form.exec()
+
+
 def export(window):
-    payload = window.store.export_report(window.session)
-    rows = csv.reader(io.StringIO(payload.decode("utf-8-sig")))
     preview = QDialog(window)
     preview.setWindowTitle("Күтім есебі")
     preview.resize(780, 460)
     layout = QVBoxLayout(preview)
-    grid = table(next(rows))
-    for row in rows:
-        table_row(grid, row)
-    layout.addWidget(grid)
+    layout.addWidget(label("Есеп пішімі", "hint"))
+    formats = combo([("csv", "CSV · электрондық кесте"), ("json", "JSON · құрылымдалған дерек")])
+    formats.setObjectName("reportFormat")
+    layout.addWidget(formats)
+    layout.addWidget(label("Файлдың алдын ала көрінісі", "hint"))
+    contents = QPlainTextEdit()
+    contents.setObjectName("reportPreview")
+    contents.setReadOnly(True)
+    layout.addWidget(contents)
+    payload = None
+
+    def refresh():
+        nonlocal payload
+        payload = None
+        contents.clear()
+        payload = window.store.export_report(window.session, file_format=formats.currentData())
+        contents.setPlainText(payload.decode("utf-8-sig"))
 
     def save():
-        name, _ = QFileDialog.getSaveFileName(preview, "Күтім есебін сақтау", "petcare.csv", "CSV (*.csv)")
-        if name:
-            Path(name).write_bytes(payload)
-            preview.accept()
-            window.notice("Күтім есебі сақталды.")
+        if payload is None:
+            raise ValueError("Есепті қайта құрастырыңыз.")
+        ext = formats.currentData()
+        name, _ = QFileDialog.getSaveFileName(preview, "Күтім есебін сақтау", f"petcare.{ext}",
+                                              f"{ext.upper()} (*.{ext})")
+        if not name:
+            return
+        path = save_report(name, payload, ext)
+        preview.accept()
+        window.notice(f"Күтім есебі сақталды.\n{path}")
 
-    layout.addWidget(window.action("CSV файлын сақтау", save, "primary"))
+    refresh()
+    formats.currentIndexChanged.connect(lambda: window.run(refresh))
+    layout.addWidget(window.action("Файлды сақтау", save, "primary"))
     preview.exec()
 
 

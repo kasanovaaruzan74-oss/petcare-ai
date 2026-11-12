@@ -29,3 +29,6 @@ QHeaderView::section {background:#1D2528; color:#B4C2C4; font-size:13px; text-al
 QScrollBar {background:#141A1C;} QScrollBar::handle {background:#465755; border-radius:3px;}
 QDialog, QMessageBox {background:#141A1C;}
 QFrame#rule {background:#374246; border:0;}
+QWidget#transcript, QFrame#chatTurn, QScrollArea#conversation {background:#1D2528; border:0;}
+QLabel[role="question"] {color:#F2F5F2; background:#193C38; border-radius:8px; padding:9px 12px;}
+QLineEdit[invalid="true"] {border:1px solid #FFB9B0;}
