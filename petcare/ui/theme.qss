@@ -1,0 +1,31 @@
+QWidget { background-color:#141A1C; color:#F2F5F2; font-family:Inter,"Segoe UI",sans-serif; font-size:15px; }
+QScrollArea, QStackedWidget {border:0;}
+QLabel, QCheckBox {background:transparent;}
+QFrame#sidebar {background:#101517;}
+QFrame#panel, QFrame#subpanel {background:#1D2528; border:1px solid #374246; border-radius:12px;}
+QFrame#feature {background:#193C38; border:1px solid #374246; border-radius:12px;}
+QLabel[role="hint"] {color:#B4C2C4; font-size:14px;}
+QLabel[role="title"] {font-size:36px; font-weight:600;}
+QLabel[role="heading"] {font-size:22px; font-weight:600;}
+QLabel[role="metric"] {font-size:42px; font-weight:600;}
+QLabel[role="accent"] {color:#74DFCB; font-weight:600;}
+QLabel[role="error"] {color:#FFB9B0;}
+QPushButton {background:#1D2528; border:1px solid #374246; border-radius:8px; padding:7px 13px; font-weight:600;}
+QPushButton:hover {background:#2A393B; border-color:#648480;}
+QPushButton:focus, QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QTextEdit:focus {border:1px solid #74DFCB;}
+QPushButton[role="primary"] {color:#101517; background:#74DFCB; border:1px solid #74DFCB;}
+QPushButton[role="primary"]:hover {background:#93EBD9;}
+QPushButton[role="danger"] {color:#FFB9B0;}
+QPushButton[role="nav"], QPushButton[role="active"] {text-align:left; padding:10px 12px; border:0; background:#101517; color:#B4C2C4; font-weight:500;}
+QPushButton[role="nav"]:hover, QPushButton[role="active"] {background:#193C38; color:#74DFCB;}
+QLineEdit, QComboBox, QDateEdit, QDateTimeEdit, QDoubleSpinBox, QSpinBox, QTextEdit {background:#141A1C; border:1px solid #374246; border-radius:7px; padding:7px; color:#F2F5F2; selection-background-color:#286257;}
+QComboBox::drop-down {border:0; width:19px;}
+QComboBox::down-arrow {image:url("{ASSETS}/chevron.svg");width:14px;height:14px;}
+QComboBox QAbstractItemView, QMenu {background:#1D2528; color:#F2F5F2; selection-background-color:#245046;}
+QMenu::item {padding:8px 20px;} QMenu::item:selected {background:#245046;}
+QTableWidget {background:#1D2528; border:0; gridline-color:#374246; selection-background-color:#245046;}
+QTableWidget::item {padding-left:5px; border-bottom:1px solid #374246;}
+QHeaderView::section {background:#1D2528; color:#B4C2C4; font-size:13px; text-align:left; border:0; border-bottom:1px solid #374246; padding:6px;}
+QScrollBar {background:#141A1C;} QScrollBar::handle {background:#465755; border-radius:3px;}
+QDialog, QMessageBox {background:#141A1C;}
+QFrame#rule {background:#374246; border:0;}
